@@ -10,6 +10,8 @@ Date: July 7, 2021
 
 class Player {
 
+	friend class boost::serialization::access;
+
 	private:
 		GamePiece* pieces[12];
 		int score;
@@ -17,12 +19,21 @@ class Player {
 		bool isTurn;
 
 	public:
+		Player() {
+
+			setScore(0);
+			setPlayerNum(1);
+			setPieces(1);
+			setIsTurn(false);
+
+		}
+
 		Player(int playerNum) {
 
 			setScore(0);
 			setPlayerNum(playerNum);
 			setPieces(playerNum);
-			setIsTurn(false);
+			setIsTurn(playerNum);
 
 		}
 
@@ -139,9 +150,25 @@ class Player {
 
 		}
 
+		void setIsTurn(int playerNum) {
+
+			isTurn = playerNum == 0 ? true : false;
+
+		}
+
 		bool getIsTurn() {
 
 			return isTurn;
+
+		}
+
+		template<class Archive>
+		void serialize(Archive& arc, const unsigned int version) {
+
+			arc& BOOST_SERIALIZATION_NVP(score);
+			arc& BOOST_SERIALIZATION_NVP(playerNum);
+			arc& BOOST_SERIALIZATION_NVP(isTurn);
+			arc& BOOST_SERIALIZATION_NVP(pieces);
 
 		}
 

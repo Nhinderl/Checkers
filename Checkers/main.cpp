@@ -9,13 +9,12 @@ There will be an option to load the most recent game/some number of recent games
 
 */
 
-#include <fstream>
 #include "HouseKeeping.h"
 
 int main(int argc, char *argv[]){
 	
 	int imgFlags = IMG_INIT_PNG;
-	int close = 0, movedPiece = 0;;
+	int close = 0, movedPiece = 0;
 	int** gameBoard = (int**) malloc(sizeof(int*) * 8);
 	int selectedPiece, selectedTeam, teamTurn = 0;
 
@@ -50,6 +49,8 @@ int main(int argc, char *argv[]){
 
 	TTF_Font* font = TTF_OpenFont("Raleway-Thin.ttf", 30);
 	int drawRet = drawMenu();
+	Player* p0 = new Player(0);
+	Player* p1 = new Player(1);
 
 	if (drawRet == -1) {
 
@@ -58,6 +59,10 @@ int main(int argc, char *argv[]){
 		IMG_Quit();
 		TTF_Quit();
 		SDL_Quit();
+		p0->destroyPieces();
+		delete(p0);
+		p1->destroyPieces();
+		delete(p1);
 		return -1;
 
 	} else if (drawRet == 1) {
@@ -66,21 +71,50 @@ int main(int argc, char *argv[]){
 		IMG_Quit();
 		TTF_Quit();
 		SDL_Quit();
+		p0->destroyPieces();
+		delete(p0);
+		p1->destroyPieces();
+		delete(p1);
 		return 0;
 
 	} else if (drawRet == 2) {
 
-		std::cout << "This is where the game will be loaded from file" << std::endl;
-		free(gameBoard);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
-		return 0;
+		if (fexists(SAVEFILE)) {
+
+			p0->destroyPieces();
+			delete(p0);
+			p1->destroyPieces();
+			delete(p1);
+			p0 = new Player;
+			p1 = new Player;
+			int loadCode = loadGame(p0, p1);
+			if (loadCode == -1) {
+
+				// TODO: make teardown function to free/delete all of this stuff
+				std::cout << "Error encountered while loading game, exiting..." << std::endl;
+				free(gameBoard);
+				IMG_Quit();
+				TTF_Quit();
+				SDL_Quit();
+				p0->destroyPieces();
+				delete(p0);
+				p1->destroyPieces();
+				delete(p1);
+				return -1;
+
+			}
+
+		} else {
+
+			// TODO: Create popup to notify user of failed load
+			std::cout << "FAILED TO LOAD FILE, NEW GAME STARTED" << std::endl;
+
+		}
+		
+		
+		teamTurn = p0->getIsTurn() ? 0 : 1;
 
 	}
-
-	Player p0(0);
-	Player p1(1);
 
 	SDL_Window* window = SDL_CreateWindow("Checkers", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, SDL_WINDOW_SHOWN);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
@@ -93,9 +127,9 @@ int main(int argc, char *argv[]){
 	SDL_RenderClear(renderer);
 
 	drawBoard(renderer);
-	initBoard(renderer, pieceList, rectList, &p0, &p1);
+	initBoard(renderer, pieceList, rectList, p0, p1);
 	initBoardPositions(pieceList, gameBoard);
-	addText(renderer, font, "Quit Game", color, 0, 0, quitRect);
+	addText(renderer, font, "Save & Quit Game", color, 0, 0, quitRect);
 
 	if (!quitRect) {
 
@@ -118,7 +152,7 @@ int main(int argc, char *argv[]){
 
 				if (close == 1) {
 
-					//saveGame(&p0, &p1);
+					saveGame(p0, p1);
 
 				}
 
@@ -149,6 +183,8 @@ int main(int argc, char *argv[]){
 					if (movedPiece == -1) {
 
 						teamTurn = !teamTurn;
+						p0->setIsTurn(!p0->getIsTurn());
+						p1->setIsTurn(!p1->getIsTurn());
 
 					}
 
@@ -176,8 +212,10 @@ int main(int argc, char *argv[]){
 
 	free(quitRect);
 	freeBoard(gameBoard);
-	p0.destroyPieces();
-	p1.destroyPieces();
+	p0->destroyPieces();
+	delete(p0);
+	p1->destroyPieces();
+	delete(p1);
 
 	IMG_Quit();
 	TTF_Quit();
@@ -187,12 +225,46 @@ int main(int argc, char *argv[]){
 
 }
 
-//void saveGame(Player* p0, Player* p1) {
-//
-//	ofstream file;
-//
-//
-//}
+bool fexists(const char* fname) {
+
+	return static_cast<bool>(std::ifstream(fname));
+
+}
+
+void saveGame(Player* p0, Player* p1) {
+
+	std::ofstream file(SAVEFILE);
+	boost::archive::binary_oarchive outputArc(file);
+
+	outputArc& BOOST_SERIALIZATION_NVP(*p0);
+	outputArc& BOOST_SERIALIZATION_NVP(*p1);
+
+	file.close();
+
+}
+
+int loadGame(Player* p0, Player* p1) {
+
+	if (fexists(SAVEFILE)) {
+
+		std::ifstream file(SAVEFILE);
+
+		boost::archive::binary_iarchive inputArc(file);
+
+		inputArc& BOOST_SERIALIZATION_NVP(*p0);
+		inputArc& BOOST_SERIALIZATION_NVP(*p1);
+
+		file.close();
+		return 0;
+
+	}
+
+	return -1;
+	
+
+}
+
+//TODO: make generic function for creating modal/popup of yes/no questions
 
 /*
 
@@ -203,7 +275,7 @@ This function generates a popup window to ensure that the user wants to quit the
 */
 int closeConfirmation() {
 
-	SDL_Window* window = SDL_CreateWindow("Quit Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 500, 300, SDL_WINDOW_ALWAYS_ON_TOP);
+	SDL_Window* window = SDL_CreateWindow("Quit Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 300, SDL_WINDOW_ALWAYS_ON_TOP);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 	TTF_Font* largeText = TTF_OpenFont("Raleway-Thin.ttf", 30);
 	TTF_Font* smallText = TTF_OpenFont("Raleway-Thin.ttf", 20);
@@ -217,7 +289,7 @@ int closeConfirmation() {
 	int* yesWidth = (int*) malloc(sizeof(int));
 	int* noWidth = (int*) malloc(sizeof(int));
 
-	TTF_SizeText(largeText, "Are you sure you want to quit?", titleWidth, NULL);
+	TTF_SizeText(largeText, "Are you sure you want to save and quit?", titleWidth, NULL);
 	TTF_SizeText(smallText, "Yes", yesWidth, NULL);
 	TTF_SizeText(smallText, "No", noWidth, NULL);
 	
@@ -235,9 +307,9 @@ int closeConfirmation() {
 
 	}
 
-	addText(renderer, largeText, "Are you sure you want to quit?", blackText, 250 - ((*titleWidth) / 2), 50, yesRect);
+	addText(renderer, largeText, "Are you sure you want to save and quit?", blackText, 300 - ((*titleWidth) / 2), 50, yesRect);
 	addText(renderer, smallText, "Yes", blackText, 100 - ((*yesWidth) / 2), 200, yesRect);
-	addText(renderer, smallText, "No", blackText, 400 - ((*noWidth) / 2), 200, noRect);
+	addText(renderer, smallText, "No", blackText, 500 - ((*noWidth) / 2), 200, noRect);
 
 	SDL_RenderPresent(renderer);
 
@@ -511,6 +583,7 @@ void initBoard(SDL_Renderer* renderer, GamePiece** pieceList, SDL_Rect* rectList
 
 		rectList[index] = drawPiece(renderer, "blueChecker.png", ((pieces2[i]->getY() + 1) * UNIT) + PIECEOFFSET, ((pieces2[i]->getX() + 1) * UNIT) + PIECEOFFSET);
 		index++;
+
 	}
 
 	SDL_RenderPresent(renderer);

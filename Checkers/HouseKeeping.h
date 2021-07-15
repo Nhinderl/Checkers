@@ -10,8 +10,10 @@ Date: July 7, 2021
 
 #include <string>
 #include <iostream>
-#include "stdlib.h"
+#include <stdlib.h>
 #include <fstream>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include "SDL.h"
 #include "GamePiece.h"
 #include "Player.h"
@@ -30,7 +32,10 @@ Date: July 7, 2021
 #define maxY 7
 // Defines the offset for the rectangle surrounding each game piece
 #define PIECEOFFSET (UNIT - PIECESIZE) / 2
+// Defines the name of the file to save previous games to
+#define SAVEFILE "prevGame.dat"
 
+bool fexists(const char*);
 int closeConfirmation();
 void drawBoard(SDL_Renderer*);
 int drawMenu();
@@ -45,4 +50,6 @@ void addText(SDL_Renderer*, TTF_Font*, const char*, SDL_Color, int, int, SDL_Rec
 int checkRectSelected(SDL_Rect*, int, int);
 int handlePieceSelected(SDL_Renderer*, int, GamePiece*, int**, SDL_Rect*);
 void setRectCoords(SDL_Renderer*, int, int, SDL_Rect*);
+void saveGame(Player*, Player*);
+int loadGame(Player*, Player*);
 void clearGreenRects(SDL_Renderer*, SDL_Rect*, SDL_Rect*, SDL_Rect*, SDL_Rect*);

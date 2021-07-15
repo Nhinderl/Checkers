@@ -10,6 +10,8 @@ Date: July 7, 2021
 
 class GamePiece {
 
+	friend class boost::serialization::access;
+
 private:
 	int x;
 	int y;
@@ -17,6 +19,10 @@ private:
 	int team;
 
 public:
+	GamePiece() {
+
+	}
+
 	GamePiece(int x, int y, int team) {
 
 		setX(x);
@@ -92,6 +98,16 @@ public:
 	int getTeam() {
 
 		return team;
+
+	}
+
+	template<class Archive>
+	void serialize(Archive& arc, const unsigned int version) {
+
+		arc& BOOST_SERIALIZATION_NVP(x);
+		arc& BOOST_SERIALIZATION_NVP(y);
+		arc& BOOST_SERIALIZATION_NVP(inPlay);
+		arc& BOOST_SERIALIZATION_NVP(team);
 
 	}
 
