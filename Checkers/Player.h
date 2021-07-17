@@ -4,7 +4,7 @@ Header file containing the class definition for the Player class
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 7, 2021
+Date: July 16, 2021
 
 */
 
@@ -83,13 +83,16 @@ class Player {
 					if (i % 2 == 0) {
 
 						tempPiece = new GamePiece(topLine, i, playerNum);
+						tempPiece->setIndex(index);
 						pieces[index++] = tempPiece;
 						tempPiece = new GamePiece(topLine + 2, i, playerNum);
+						tempPiece->setIndex(index);
 						pieces[index++] = tempPiece;
 
 					} else {
 
 						tempPiece = new GamePiece(topLine + 1, i, playerNum);
+						tempPiece->setIndex(index);
 						pieces[index++] = tempPiece;
 
 					}
@@ -107,13 +110,16 @@ class Player {
 					if (i % 2 == 1) {
 
 						tempPiece = new GamePiece(topLine, i, playerNum);
+						tempPiece->setIndex(index + 12);
 						pieces[index++] = tempPiece;
 						tempPiece = new GamePiece(topLine + 2, i, playerNum);
+						tempPiece->setIndex(index + 12);
 						pieces[index++] = tempPiece;
 
 					} else {
 
 						tempPiece = new GamePiece(topLine + 1, i, playerNum);
+						tempPiece->setIndex(index + 12);
 						pieces[index++] = tempPiece;
 
 					}
@@ -159,6 +165,22 @@ class Player {
 		bool getIsTurn() {
 
 			return isTurn;
+
+		}
+
+		GamePiece* getPieceByCoords(int x, int y) {
+
+			for (int i = 0; i < 12; i++) {
+
+				if (pieces[i] && pieces[i]->getX() == x && pieces[i]->getY() == y) {
+
+					return pieces[i];
+
+				}
+
+			}
+
+			return NULL;
 
 		}
 

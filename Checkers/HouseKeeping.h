@@ -4,21 +4,9 @@ Header file containing all fucntion prototypes and define statements as well as 
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 7, 2021
+Date: July 16, 2021
 
 */
-
-#include <string>
-#include <iostream>
-#include <stdlib.h>
-#include <fstream>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include "SDL.h"
-#include "GamePiece.h"
-#include "Player.h"
-#include "SDL_ttf.h"
-#include "SDL_image.h"
 
 // Defines the size of each of the positions on the board, 100px
 #define UNIT 100
@@ -34,6 +22,22 @@ Date: July 7, 2021
 #define PIECEOFFSET (UNIT - PIECESIZE) / 2
 // Defines the name of the file to save previous games to
 #define SAVEFILE "prevGame.dat"
+// Defines the width of the main screen of the game
+#define GAMESCREENWIDTH 1000
+// Defines the height of the main screen of the game
+#define GAMESCREENHEIGHT 1000
+
+#include <string>
+#include <iostream>
+#include <stdlib.h>
+#include <fstream>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include "SDL.h"
+#include "GamePiece.h"
+#include "Player.h"
+#include "SDL_ttf.h"
+#include "SDL_image.h"
 
 bool fexists(const char*);
 int closeConfirmation();
@@ -48,8 +52,11 @@ void movePieceOnBoard(GamePiece*, int**, int, int);
 int getSelectedPiece(SDL_Rect*, int, int);
 void addText(SDL_Renderer*, TTF_Font*, const char*, SDL_Color, int, int, SDL_Rect*);
 int checkRectSelected(SDL_Rect*, int, int);
-int handlePieceSelected(SDL_Renderer*, int, GamePiece*, int**, SDL_Rect*);
+int handlePieceSelected(SDL_Renderer*, int, GamePiece*, int**, SDL_Rect*, Player*, Player*);
 void setRectCoords(SDL_Renderer*, int, int, SDL_Rect*);
 void saveGame(Player*, Player*);
 int loadGame(Player*, Player*);
+void removePiece(SDL_Renderer*, int**, GamePiece*);
+void updateScore(SDL_Renderer*, Player*, Player*);
 void clearGreenRects(SDL_Renderer*, SDL_Rect*, SDL_Rect*, SDL_Rect*, SDL_Rect*);
+int createModal(const char*, const char*, const char*, const char*);

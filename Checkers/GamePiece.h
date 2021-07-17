@@ -4,7 +4,7 @@ Header file containing the class definition for the GamePiece class
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 7, 2021
+Date: July 16, 2021
 
 */
 
@@ -17,9 +17,17 @@ private:
 	int y;
 	bool inPlay;
 	int team;
+	bool isKing;
+	int index = -1;
 
 public:
 	GamePiece() {
+
+		setX(0);
+		setY(0);
+		setInPlay(false);
+		setTeam(0);
+		setIsKing(false);
 
 	}
 
@@ -28,6 +36,7 @@ public:
 		setX(x);
 		setY(y);
 		setInPlay(true);
+		setIsKing(false);
 		setTeam(team);
 
 	}
@@ -101,6 +110,34 @@ public:
 
 	}
 
+	void setIsKing(bool isKing) {
+
+		this->isKing = isKing;
+
+	}
+
+	bool getIsKing() {
+
+		return isKing;
+
+	}
+
+	void setIndex(int index) {
+
+		if (index >= 0 && index <= 23) {
+
+			this->index = index;
+
+		}
+
+	}
+
+	int getIndex() {
+
+		return index;
+
+	}
+
 	template<class Archive>
 	void serialize(Archive& arc, const unsigned int version) {
 
@@ -108,6 +145,8 @@ public:
 		arc& BOOST_SERIALIZATION_NVP(y);
 		arc& BOOST_SERIALIZATION_NVP(inPlay);
 		arc& BOOST_SERIALIZATION_NVP(team);
+		arc& BOOST_SERIALIZATION_NVP(isKing);
+		arc& BOOST_SERIALIZATION_NVP(index);
 
 	}
 

@@ -2,7 +2,7 @@
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 7, 2021
+Date: July 16, 2021
 
 This program is a game of checkers. The user can choose to play alone (against AI) or with another person on the same machine.
 There will be an option to load the most recent game/some number of recent games to resume.
@@ -10,6 +10,7 @@ There will be an option to load the most recent game/some number of recent games
 */
 
 #include "HouseKeeping.h"
+#include "Helper.h"
 
 int main(int argc, char *argv[]){
 	
@@ -17,13 +18,14 @@ int main(int argc, char *argv[]){
 	int close = 0, movedPiece = 0;
 	int** gameBoard = (int**) malloc(sizeof(int*) * 8);
 	int selectedPiece, selectedTeam, teamTurn = 0;
+	std::string str;
 
 	GamePiece* pieceList[24];
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
 
 		std::cout << "Error Initialising SDL" << std::endl;
-		free(gameBoard);
+		tearDown(0, gameBoard, NULL, NULL);
 		return -1;
 
 	}
@@ -31,8 +33,7 @@ int main(int argc, char *argv[]){
 	if (IMG_Init(IMG_INIT_PNG) < 0) {
 
 		std::cout << "Error Initialising SDL" << std::endl;
-		free(gameBoard);
-		SDL_Quit();
+		tearDown(1, gameBoard, NULL, NULL);
 		return -1;
 
 	}
@@ -40,14 +41,12 @@ int main(int argc, char *argv[]){
 	if (TTF_Init() < 0) {
 
 		std::cout << "Error Initialising SDL_TTF" << std::endl;
-		free(gameBoard);
-		IMG_Quit();
-		SDL_Quit();
+		tearDown(2, gameBoard, NULL, NULL);
 		return -1;
 
 	}
 
-	TTF_Font* font = TTF_OpenFont("Raleway-Thin.ttf", 30);
+	TTF_Font* font = TTF_OpenFont("Raleway-Thin.ttf", 20);
 	int drawRet = drawMenu();
 	Player* p0 = new Player(0);
 	Player* p1 = new Player(1);
@@ -55,72 +54,45 @@ int main(int argc, char *argv[]){
 	if (drawRet == -1) {
 
 		std::cout << "An error occurred, exiting..." << std::endl;
-		free(gameBoard);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
-		p0->destroyPieces();
-		delete(p0);
-		p1->destroyPieces();
-		delete(p1);
+		tearDown(3, gameBoard, p0, p1);
 		return -1;
 
 	} else if (drawRet == 1) {
 
-		free(gameBoard);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
-		p0->destroyPieces();
-		delete(p0);
-		p1->destroyPieces();
-		delete(p1);
+		tearDown(3, gameBoard, p0, p1);
 		return 0;
 
 	} else if (drawRet == 2) {
 
 		if (fexists(SAVEFILE)) {
 
-			p0->destroyPieces();
-			delete(p0);
-			p1->destroyPieces();
-			delete(p1);
+			tearDown(-1, NULL, p0, p1);
 			p0 = new Player;
 			p1 = new Player;
 			int loadCode = loadGame(p0, p1);
 			if (loadCode == -1) {
 
-				// TODO: make teardown function to free/delete all of this stuff
 				std::cout << "Error encountered while loading game, exiting..." << std::endl;
-				free(gameBoard);
-				IMG_Quit();
-				TTF_Quit();
-				SDL_Quit();
-				p0->destroyPieces();
-				delete(p0);
-				p1->destroyPieces();
-				delete(p1);
+				tearDown(3, gameBoard, p0, p1);
 				return -1;
 
 			}
 
 		} else {
 
-			// TODO: Create popup to notify user of failed load
-			std::cout << "FAILED TO LOAD FILE, NEW GAME STARTED" << std::endl;
+			createModal("Load Failed", "Program failed to load saved game file, new game started", "Ok", NULL);
 
 		}
-		
 		
 		teamTurn = p0->getIsTurn() ? 0 : 1;
 
 	}
 
-	SDL_Window* window = SDL_CreateWindow("Checkers", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, SDL_WINDOW_SHOWN);
+	SDL_Window* window = SDL_CreateWindow("Checkers", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAMESCREENWIDTH, GAMESCREENHEIGHT, SDL_WINDOW_SHOWN);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 	SDL_Event event;
 	SDL_Rect rectList[24];
-	SDL_Color color = { 0, 0, 0 };
+	SDL_Color blackColor = { 0, 0, 0 }, blueColor = { 0, 0, 255 }, redColor = { 255, 0, 0 };
 	SDL_Rect* quitRect = (SDL_Rect*)malloc(sizeof(SDL_Rect));
 
 	SDL_SetRenderDrawColor(renderer, 200, 211, 201, 255);
@@ -129,7 +101,9 @@ int main(int argc, char *argv[]){
 	drawBoard(renderer);
 	initBoard(renderer, pieceList, rectList, p0, p1);
 	initBoardPositions(pieceList, gameBoard);
-	addText(renderer, font, "Save & Quit Game", color, 0, 0, quitRect);
+	addText(renderer, font, "Save & Quit Game", blackColor, 0, 0, quitRect);
+
+	updateScore(renderer, p0, p1);
 
 	if (!quitRect) {
 
@@ -168,7 +142,7 @@ int main(int argc, char *argv[]){
 						selectedTeam = pieceList[movedPiece]->getTeam();
 						if (selectedTeam == teamTurn) {
 
-							movedPiece = handlePieceSelected(renderer, movedPiece, pieceList[movedPiece], gameBoard, rectList);
+							movedPiece = handlePieceSelected(renderer, movedPiece, pieceList[movedPiece], gameBoard, rectList, p0, p1);
 
 						} else {
 
@@ -189,7 +163,6 @@ int main(int argc, char *argv[]){
 					}
 
 					selectedPiece = -1;
-					SDL_Delay(1000);
 
 				}
 
@@ -210,27 +183,35 @@ int main(int argc, char *argv[]){
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
-	free(quitRect);
-	freeBoard(gameBoard);
-	p0->destroyPieces();
-	delete(p0);
-	p1->destroyPieces();
-	delete(p1);
-
-	IMG_Quit();
-	TTF_Quit();
-	SDL_Quit();
+	tearDown(3, gameBoard, p0, p1);
 
 	return 0;
 
 }
 
+/*
+
+This function checks if the given file exists
+
+@param const char* fname: the name of the file to be checked for existance
+
+@return bool: returns true if file exists, false otherwise
+
+*/
 bool fexists(const char* fname) {
 
 	return static_cast<bool>(std::ifstream(fname));
 
 }
 
+/*
+
+This function saves the current game to the previous game file
+
+@param Player* p0: player object to be written to file
+@param Player* p1: player object to be written to file 
+
+*/
 void saveGame(Player* p0, Player* p1) {
 
 	std::ofstream file(SAVEFILE);
@@ -243,6 +224,16 @@ void saveGame(Player* p0, Player* p1) {
 
 }
 
+/*
+
+This function loads a game from the previous game file
+
+@param Player* p0: player object that will have values loaded from file
+@param Player* p1: player object that will have values loaded from file
+
+@return int: returns 0 on successful read, returns -1 on failure to read file
+
+*/
 int loadGame(Player* p0, Player* p1) {
 
 	if (fexists(SAVEFILE)) {
@@ -260,11 +251,8 @@ int loadGame(Player* p0, Player* p1) {
 	}
 
 	return -1;
-	
 
 }
-
-//TODO: make generic function for creating modal/popup of yes/no questions
 
 /*
 
@@ -275,91 +263,7 @@ This function generates a popup window to ensure that the user wants to quit the
 */
 int closeConfirmation() {
 
-	SDL_Window* window = SDL_CreateWindow("Quit Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 300, SDL_WINDOW_ALWAYS_ON_TOP);
-	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-	TTF_Font* largeText = TTF_OpenFont("Raleway-Thin.ttf", 30);
-	TTF_Font* smallText = TTF_OpenFont("Raleway-Thin.ttf", 20);
-	SDL_Rect* yesRect = (SDL_Rect*) malloc(sizeof(SDL_Rect));
-	SDL_Rect* noRect = (SDL_Rect*) malloc(sizeof(SDL_Rect));
-	SDL_Color blackText = { 0, 0, 0 };
-	SDL_Event event;
-
-	int close = 0, toRet = 0;
-	int* titleWidth = (int*) malloc(sizeof(int));
-	int* yesWidth = (int*) malloc(sizeof(int));
-	int* noWidth = (int*) malloc(sizeof(int));
-
-	TTF_SizeText(largeText, "Are you sure you want to save and quit?", titleWidth, NULL);
-	TTF_SizeText(smallText, "Yes", yesWidth, NULL);
-	TTF_SizeText(smallText, "No", noWidth, NULL);
-	
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-	SDL_RenderClear(renderer);
-
-	if(!(titleWidth && yesWidth && noWidth)){
-	
-		free(yesRect);
-		free(noRect);
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		return 0;
-
-	}
-
-	addText(renderer, largeText, "Are you sure you want to save and quit?", blackText, 300 - ((*titleWidth) / 2), 50, yesRect);
-	addText(renderer, smallText, "Yes", blackText, 100 - ((*yesWidth) / 2), 200, yesRect);
-	addText(renderer, smallText, "No", blackText, 500 - ((*noWidth) / 2), 200, noRect);
-
-	SDL_RenderPresent(renderer);
-
-	if (!yesRect || !noRect) {
-
-		free(titleWidth);
-		free(yesWidth);
-		free(noWidth);
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		return 0;
-
-	}
-
-	while (close != 1) {
-
-		SDL_PollEvent(&event);
-		if (event.type == SDL_MOUSEBUTTONDOWN) {
-
-			if (checkRectSelected(yesRect, event.button.x, event.button.y) == 0) {
-
-				close = 1;
-				toRet = 1;
-
-			} else if (checkRectSelected(noRect, event.button.x, event.button.y) == 0) {
-
-				close = 1;
-				toRet = 0;
-
-			}
-
-		}
-
-		if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE) {
-
-			close = 1;
-			toRet = 0;
-
-		}
-
-		SDL_Delay(1000 / FPS);
-
-	}
-
-	free(yesRect);
-	free(noRect);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-
-	return toRet;
+	return createModal("Quit Game", "Are you sure you want to save and quit?", "Yes", "No");
 
 }
 
@@ -466,40 +370,6 @@ int drawMenu() {
 
 /*
 
-This function adds text to the renderer passed into it
-
-@param SDL_Renderer* renderer: A pointer to the renderer where text is to be added
-@param TTF_Font* font: A pointer to the font style and size that is to be used for the text
-@param const char* text: A pointer to the text to be written to the renderer
-@param SDL_Color color: The color that the text is to be printed in
-@param int x: The x coordinate of the rectangle for the text to be put in
-@param int y: The y coordinate of the rectangle for the text to be put in
-@param SDL_Rect* rect: A pointer to the rectangle object holding the text
-
-*/
-void addText(SDL_Renderer* renderer, TTF_Font* font, const char* text, SDL_Color color, int x, int y, SDL_Rect* rect) {
-
-	SDL_Surface* tempSurf = TTF_RenderText_Solid(font, text, color);
-	if (!tempSurf) {
-
-		std::cout << "Failed to render text: \"" << text << "\"" << std::endl;
-		return;
-
-	}
-
-	SDL_Texture* tempTex = SDL_CreateTextureFromSurface(renderer, tempSurf);
-	rect->x = x;
-	rect->y = y;
-	rect->w = tempSurf->w;
-	rect->h = tempSurf->h;
-	SDL_RenderCopy(renderer, tempTex, NULL, rect);
-
-	SDL_DestroyTexture(tempTex);
-
-}
-
-/*
-
 This function draws the game board to the window created in main()
 
 @param SDL_Renderer* renderer: A pointer to the renderer used to draw the game board
@@ -568,20 +438,41 @@ void initBoard(SDL_Renderer* renderer, GamePiece** pieceList, SDL_Rect* rectList
 
 	GamePiece** pieces1 = p0->getPieces();
 	GamePiece** pieces2 = p1->getPieces();
+	SDL_Rect tempRect;
+	tempRect.x = tempRect.y = -1;
+	tempRect.w = tempRect.h = 0;
 	int index = 0;
 	std::copy(pieces1, pieces1 + 12, pieceList);
 	std::copy(pieces2, pieces2 + 12, pieceList + 12);
 
 	for (int i = 0; i < 12; i++) {
 
-		rectList[index] = drawPiece(renderer, "redChecker.png", ((pieces1[i]->getY() + 1) * UNIT) + PIECEOFFSET, ((pieces1[i]->getX() + 1) * UNIT) + PIECEOFFSET);
-		index++;
+		if (pieces1[i]->getInPlay()) {
 
+			rectList[index] = drawPiece(renderer, pieces1[i]->getIsKing() ? "redKingChecker.png" : "redChecker.png", ((pieces1[i]->getY() + 1) * UNIT) + PIECEOFFSET, ((pieces1[i]->getX() + 1) * UNIT) + PIECEOFFSET);
+
+		} else {
+
+			rectList[index] = tempRect;
+
+		}
+
+		index++;
+		
 	}
 
 	for (int i = 0; i < 12; i++) {
 
-		rectList[index] = drawPiece(renderer, "blueChecker.png", ((pieces2[i]->getY() + 1) * UNIT) + PIECEOFFSET, ((pieces2[i]->getX() + 1) * UNIT) + PIECEOFFSET);
+		if (pieces2[i]->getInPlay()) {
+
+			rectList[index] = drawPiece(renderer, pieces2[i]->getIsKing() ? "blueKingChecker.png" : "blueChecker.png", ((pieces2[i]->getY() + 1) * UNIT) + PIECEOFFSET, ((pieces2[i]->getX() + 1) * UNIT) + PIECEOFFSET);
+
+		} else {
+
+			rectList[index] = tempRect;
+
+		}
+
 		index++;
 
 	}
@@ -640,7 +531,17 @@ This function is used to redraw pieces on the board
 */
 void redrawPiece(SDL_Renderer* renderer, GamePiece* piece, SDL_Rect* rect, int prevX, int prevY) {
 
-	SDL_Surface* image = IMG_Load(piece->getTeam() == 0 ? "redChecker.png" : "blueChecker.png");
+	SDL_Surface* image;
+
+	if (piece->getIsKing()) {
+
+		image = IMG_Load(piece->getTeam() == 0 ? "redKingChecker.png" : "blueKingChecker.png");
+
+	} else {
+
+		image = IMG_Load(piece->getTeam() == 0 ? "redChecker.png" : "blueChecker.png");
+
+	}
 
 	SDL_Rect tempRect;
 	tempRect.x = ((prevY + 1) * UNIT);
@@ -688,7 +589,11 @@ int getSelectedPiece(SDL_Rect* rectList, int x, int y) {
 
 	for (int i = 0; i < 24; i++) {
 
-		if ((x > rectList[i].x) && (x < (rectList[i].x + rectList[i].w)) && (y > rectList[i].y) && (y < (rectList[i].y + rectList[i].h))) {
+		if (rectList[i].x == -1 || rectList[i].y == -1 || rectList[i].h == 0 || rectList[i].w == 0) {
+
+			continue;
+
+		} else if ((x > rectList[i].x) && (x < (rectList[i].x + rectList[i].w)) && (y > rectList[i].y) && (y < (rectList[i].y + rectList[i].h))) {
 
 			return i;
 
@@ -733,37 +638,6 @@ void initBoardPositions(GamePiece** pieceList, int** gameBoard) {
 
 	}
 
-	/*for (int i = 0; i < 8; i++) {
-
-		for (int j = 0; j < 8; j++) {
-
-			std::cout << gameBoard[i][j] << " ";
-
-		}
-
-		std::cout << std::endl;
-
-	}*/
-
-}
-
-/*
-
-This function frees the memory allocated to the 2D array tracking board positions
-
-@param int** gameBoard: the 2D array holding all board positions
-
-*/
-void freeBoard(int** gameBoard) {
-
-	for (int i = 0; i < 8; i++) {
-
-		free(gameBoard[i]);
-
-	}
-
-	free(gameBoard);
-
 }
 
 /*
@@ -789,6 +663,23 @@ int checkRectSelected(SDL_Rect* rect, int x, int y) {
 
 }
 
+void removePiece(SDL_Renderer* renderer, int** gameBoard, GamePiece* piece, SDL_Rect* rectList) {
+
+	int x = piece->getX(), y = piece->getY();
+	SDL_Rect tempRect;
+	tempRect.x = (y + 1) * UNIT;
+	tempRect.y = (x + 1) * UNIT;
+	tempRect.w = tempRect.h = UNIT;
+	rectList[piece->getIndex()].w = 0;
+	rectList[piece->getIndex()].h = 0;
+	gameBoard[x][y] = 0;
+	piece->setInPlay(false);
+
+	SDL_RenderFillRect(renderer, &tempRect);
+	SDL_RenderDrawRect(renderer, &tempRect);
+
+}
+
 /*
 
 This function handles the user clicking on a specific game piece by drawing rectangles where the piece can be moved
@@ -801,37 +692,74 @@ This function handles the user clicking on a specific game piece by drawing rect
 @return int: returns the index of another piece that was selected or -1 for no other piece selected or -2 for close window
 
 */
-int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int** board, SDL_Rect* rectList) {
+int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int** board, SDL_Rect* rectList, Player* p0, Player* p1) {
 
 	int pieceX = piece->getX();
 	int pieceY = piece->getY();
-	int lessX = 0, lessY = 0, close = 0;
+	int pieceTeam = piece->getTeam();
+	int lessX = 0, lessY = 0, close = 0, jumpUL = 1, jumpUR = 1, jumpDL = 1, jumpDR = 1;
 	SDL_Rect upLeft, upRight, downLeft, downRight;
 	SDL_Event event;
+	GamePiece* jumpedPieceUL, *jumpedPieceUR, *jumpedPieceDL, *jumpedPieceDR;
+	jumpedPieceUL = jumpedPieceUR = jumpedPieceDL = jumpedPieceDR = NULL;
 	upLeft.w = upRight.w = downLeft.w = downRight.w = UNIT;
 	upLeft.h = upRight.h = downLeft.h = downRight.h = UNIT;
 	upLeft.x = upRight.x = downLeft.x = downRight.x = -10;
 	upLeft.y = upRight.y = downLeft.y = downRight.y = -10;
 
+	std::cout << "PIECE X = " << pieceX << ", Y = " << pieceY << std::endl;
+
 	SDL_SetRenderDrawColor(renderer, 51, 255, 51, 255);
 
-	if (pieceX - 1 >= 0) {
+	if (piece->getTeam() == 0 || piece->getIsKing()) {
 
-		if (pieceY - 1 >= 0) {
+		if (pieceX - 1 >= 0) {
 
-			if (board[pieceX - 1][pieceY - 1] == 0) {
+			if (pieceY - 1 >= 0) {
 
-				setRectCoords(renderer, pieceY * UNIT, pieceX * UNIT, &upLeft);
+				if (board[pieceX - 1][pieceY - 1] == 0) {
+
+					setRectCoords(renderer, pieceY * UNIT, pieceX * UNIT, &upLeft);
+
+				}
+
+			}
+
+			if (pieceY + 1 <= maxY) {
+
+				if (board[pieceX - 1][pieceY + 1] == 0) {
+
+					setRectCoords(renderer, (pieceY + 2) * UNIT, pieceX * UNIT, &upRight);
+
+				}
 
 			}
 
 		}
 
-		if (pieceY + 1 <= maxY) {
+		if (pieceX - 2 >= 0) {
 
-			if (board[pieceX - 1][pieceY + 1] == 0) {
+			if (pieceY - 2 >= 0) {
 
-				setRectCoords(renderer, (pieceY + 2) * UNIT, pieceX * UNIT, &upRight);
+				jumpedPieceUL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY - 1) : p0->getPieceByCoords(pieceX - 1, pieceY - 1);
+				if (jumpedPieceUL && board[pieceX - 1][pieceY - 1] == 1 && board[pieceX - 2][pieceY - 2] == 0) {
+
+					setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX - 1) * UNIT, &upLeft);
+					jumpUL = 2;
+
+				}
+
+			}
+
+			if (pieceY + 2 <= maxY) {
+
+				jumpedPieceUR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY + 1) : p0->getPieceByCoords(pieceX - 1, pieceY + 1);
+				if (jumpedPieceUR && board[pieceX - 1][pieceY + 1] == 1 && board[pieceX - 2][pieceY + 2] == 0) {
+
+					setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX - 1) * UNIT, &upRight);
+					jumpUR = 2;
+
+				}
 
 			}
 
@@ -839,30 +767,62 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 	}
 
-	if (pieceX + 1 <= maxX) {
+	if (piece->getTeam() == 1 || piece->getIsKing()) {
 
-		if (pieceY - 1 >= 0) {
+		if (pieceX + 1 <= maxX) {
 
-			if (board[pieceX + 1][pieceY - 1] == 0) {
+			if (pieceY - 1 >= 0) {
 
-				setRectCoords(renderer, pieceY * UNIT, (pieceX + 2) * UNIT, &downLeft);
+				if (board[pieceX + 1][pieceY - 1] == 0) {
+
+					setRectCoords(renderer, pieceY * UNIT, (pieceX + 2) * UNIT, &downLeft);
+
+				}
+
+			}
+
+			if (pieceY + 1 <= maxY) {
+
+				if (board[pieceX + 1][pieceY + 1] == 0) {
+
+					setRectCoords(renderer, (pieceY + 2) * UNIT, (pieceX + 2) * UNIT, &downRight);
+
+				}
 
 			}
 
 		}
 
-		if (pieceY + 1 <= maxY) {
+		if (pieceX + 2 <= maxX) {
 
-			if (board[pieceX + 1][pieceY + 1] == 0) {
+			if (pieceY - 2 >= 0) {
 
-				setRectCoords(renderer, (pieceY + 2) * UNIT, (pieceX + 2) * UNIT, &downRight);
+				jumpedPieceDL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY - 1) : p0->getPieceByCoords(pieceX + 1, pieceY - 1);
+				if (jumpedPieceDL && board[pieceX + 1][pieceY - 1] == 1 && board[pieceX + 2][pieceY - 2] == 0) {
+
+					setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX + 3) * UNIT, &downLeft);
+					jumpDL = 2;
+
+				}
+
+			}
+
+			if (pieceY + 2 <= maxY) {
+
+				jumpedPieceDR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY + 1) : p0->getPieceByCoords(pieceX + 1, pieceY + 1);
+				if (jumpedPieceDR && board[pieceX + 1][pieceY + 1] == 1 && board[pieceX + 2][pieceY + 2] == 0) {
+
+					setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX + 3) * UNIT, &downRight);
+					jumpDR = 2;
+
+				}
 
 			}
 
 		}
 
 	}
-
+	
 	SDL_RenderPresent(renderer);
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -874,34 +834,92 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 			if (checkRectSelected(&upLeft, event.button.x, event.button.y) == 0) {
 
-				std::cout << "UP to the LEFT now" << std::endl;
-				movePieceOnBoard(piece, board, -1, -1);
+				movePieceOnBoard(piece, board, -1 * jumpUL, -1 * jumpUL);
+				if (jumpUL == 2) {
+
+					removePiece(renderer, board, jumpedPieceUL, rectList);
+					if (pieceTeam == 0) {
+
+						p0->setScore(p0->getScore() + 1);
+
+					} else {
+
+						p1->setScore(p1->getScore() + 1);
+
+					}
+
+				}
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
+				updateScore(renderer, p0, p1);
 				return -1;
 
 			} else if (checkRectSelected(&upRight, event.button.x, event.button.y) == 0) {
 
-				std::cout << "UP to the RIGHT now" << std::endl;
-				movePieceOnBoard(piece, board, -1, 1);
+				movePieceOnBoard(piece, board, -1 * jumpUR, jumpUR);
+				if (jumpUR == 2) {
+
+					removePiece(renderer, board, jumpedPieceUR, rectList);
+					if (pieceTeam == 0) {
+
+						p0->setScore(p0->getScore() + 1);
+
+					} else {
+
+						p1->setScore(p1->getScore() + 1);
+
+					}
+
+				}
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
+				updateScore(renderer, p0, p1);
 				return -1;
 
 			} else if (checkRectSelected(&downLeft, event.button.x, event.button.y) == 0) {
 
-				std::cout << "DOWN to the LEFT now" << std::endl;
-				movePieceOnBoard(piece, board, 1, -1);
+				movePieceOnBoard(piece, board, jumpDL, -1 * jumpDL);
+				if (jumpDL == 2) {
+
+					removePiece(renderer, board, jumpedPieceDL, rectList);
+					if (pieceTeam == 0) {
+
+						p0->setScore(p0->getScore() + 1);
+
+					}
+					else {
+
+						p1->setScore(p1->getScore() + 1);
+
+					}
+
+				}
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
+				updateScore(renderer, p0, p1);
 				return -1;
 
 			} else if (checkRectSelected(&downRight, event.button.x, event.button.y) == 0) {
 
-				std::cout << "DOWN to the RIGHT now" << std::endl;
-				movePieceOnBoard(piece, board, 1, 1);
+				movePieceOnBoard(piece, board, jumpDR, jumpDR);
+				if (jumpDR == 2) {
+
+					removePiece(renderer, board, jumpedPieceDR, rectList);
+					if (pieceTeam == 0) {
+
+						p0->setScore(p0->getScore() + 1);
+
+					}
+					else {
+
+						p1->setScore(p1->getScore() + 1);
+
+					}
+
+				}
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
+				updateScore(renderer, p0, p1);
 				return -1;
 
 			} else {
@@ -925,27 +943,6 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	SDL_RenderPresent(renderer);
 
 	return -1;
-
-}
-
-/*
-
-This function is a helper funtion to change the coordinates of a piece and write them to the board int 2D array
-
-@param GamePiece* piece: piece that is being moved
-@param int** board: 2D int array tracking where all pieces are
-@param int changeInX: int signifying where the piece is to be moved on the x plane
-@param int changeInY: int signifying where the piece is to be moved on the y plane
-
-*/
-void movePieceOnBoard(GamePiece* piece, int** board, int changeInX, int changeInY) {
-
-	int x = piece->getX(), y = piece->getY();
-
-	piece->setX(x + changeInX);
-	piece->setY(y + changeInY);
-	board[x][y] = 0;
-	board[x + changeInX][y + changeInY] = 1;
 
 }
 
