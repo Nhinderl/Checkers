@@ -4,7 +4,7 @@ Header file containing the class definition for the GamePiece class
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 16, 2021
+Date: July 27, 2021
 
 */
 

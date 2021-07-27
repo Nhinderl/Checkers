@@ -247,6 +247,15 @@ void tearDown(int quitFlag, int** gameBoard, Player* p0, Player* p1) {
 
 }
 
+/*
+
+This function updates the score of both players and presents it to the user
+
+@param SDL_Renderer* renderer: renderer object to draw new scores to screen
+@param Player* p0: player 0 object
+@param Player* p1: player 1 object
+
+*/
 void updateScore(SDL_Renderer* renderer, Player* p0, Player* p1) {
 
 	SDL_SetRenderDrawColor(renderer, 200, 211, 201, 255);
@@ -282,5 +291,161 @@ void updateScore(SDL_Renderer* renderer, Player* p0, Player* p1) {
 	addText(renderer, font, str.c_str(), blue, (GAMESCREENWIDTH / 2) - (blueWidth / 2), 50, &tempRect);
 
 	SDL_RenderPresent(renderer);
+
+}
+
+/*
+
+This function creates a popup if there is a winner
+
+@param Player* p0: red player object
+@param Player* p1: blue player object
+
+@return int: returns 0 if there is not yet a winner, returns 1 if there is a winner chosen
+
+*/
+int declareWinner(Player* p0, Player* p1) {
+
+	if (p0->getScore() == 12) {
+
+		createModal("Winner!", "Congratulations, red player wins!", "Ok", NULL);
+		return 1;
+
+	} else if (p1->getScore() == 12) {
+
+		createModal("Winner!", "Congratulations, blue player wins!", "Ok", NULL);
+		return 1;
+
+	}
+
+	return -1;
+
+}
+
+/*
+
+This function returns a list of all legal moves that can be made by a piece
+
+@param GamePiece* piece: the piece whose possible moves are being checked
+@param int* moves: list of ints indicating which moves can be made
+@param int** board: list of ints tracking which spaces are occupied
+@param Player* p0: the red player object
+@param Player* p1: the blue player object
+
+*/
+void getLegalMoves(GamePiece* piece, int* moves, int** board, Player* p0, Player* p1) {
+
+	int team = piece->getTeam();
+	int pieceX = piece->getX();
+	int pieceY = piece->getY();
+	GamePiece* jumpedPieceUL, * jumpedPieceUR, * jumpedPieceDL, * jumpedPieceDR;
+
+	if (team == 0 || piece->getIsKing()) {
+
+		if (pieceX - 1 >= 0) {
+
+			if (pieceY - 1 >= 0) {
+
+				if (board[pieceX - 1][pieceY - 1] == 0) {
+
+					moves[0] = 1;
+
+				}
+
+			}
+
+			if (pieceY + 1 <= maxY) {
+
+				if (board[pieceX - 1][pieceY + 1] == 0) {
+
+					moves[1] = 1;
+
+				}
+
+			}
+
+		}
+
+		if (pieceX - 2 >= 0) {
+
+			if (pieceY - 2 >= 0) {
+
+				jumpedPieceUL = team == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY - 1) : p0->getPieceByCoords(pieceX - 1, pieceY - 1);
+				if (jumpedPieceUL && board[pieceX - 1][pieceY - 1] == 1 && board[pieceX - 2][pieceY - 2] == 0) {
+
+					moves[2] = 1;
+
+				}
+
+			}
+
+			if (pieceY + 2 <= maxY) {
+
+				jumpedPieceUR = team == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY + 1) : p0->getPieceByCoords(pieceX - 1, pieceY + 1);
+				if (jumpedPieceUR && board[pieceX - 1][pieceY + 1] == 1 && board[pieceX - 2][pieceY + 2] == 0) {
+
+					moves[3] = 1;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	if (team == 1 || piece->getIsKing()) {
+
+		if (pieceX + 1 <= maxX) {
+
+			if (pieceY - 1 >= 0) {
+
+				if (board[pieceX + 1][pieceY - 1] == 0) {
+
+					moves[4] = 1;
+
+				}
+
+			}
+
+			if (pieceY + 1 <= maxY) {
+
+				if (board[pieceX + 1][pieceY + 1] == 0) {
+
+					moves[5] = 1;
+
+				}
+
+			}
+
+		}
+
+		if (pieceX + 2 <= maxX) {
+
+			if (pieceY - 2 >= 0) {
+
+				jumpedPieceDL = team == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY - 1) : p0->getPieceByCoords(pieceX + 1, pieceY - 1);
+				if (jumpedPieceDL && board[pieceX + 1][pieceY - 1] == 1 && board[pieceX + 2][pieceY - 2] == 0) {
+
+					moves[6] = 1;
+
+				}
+
+			}
+
+			if (pieceY + 2 <= maxY) {
+
+				jumpedPieceDR = team == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY + 1) : p0->getPieceByCoords(pieceX + 1, pieceY + 1);
+				if (jumpedPieceDR && board[pieceX + 1][pieceY + 1] == 1 && board[pieceX + 2][pieceY + 2] == 0) {
+
+					moves[7] = 1;
+
+				}
+
+			}
+
+		}
+
+	}
 
 }

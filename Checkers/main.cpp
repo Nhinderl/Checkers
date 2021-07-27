@@ -2,10 +2,9 @@
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 16, 2021
+Date: July 27, 2021
 
 This program is a game of checkers. The user can choose to play alone (against AI) or with another person on the same machine.
-There will be an option to load the most recent game/some number of recent games to resume.
 
 */
 
@@ -32,7 +31,7 @@ int main(int argc, char *argv[]){
 
 	if (IMG_Init(IMG_INIT_PNG) < 0) {
 
-		std::cout << "Error Initialising SDL" << std::endl;
+		std::cout << "Error Initialising IMG" << std::endl;
 		tearDown(1, gameBoard, NULL, NULL);
 		return -1;
 
@@ -115,8 +114,7 @@ int main(int argc, char *argv[]){
 
 	while (close != 1) {
 
-		SDL_PollEvent(&event);
-		if (event.type == SDL_MOUSEBUTTONDOWN) {
+		if (SDL_PollEvent(&event) > 0 && event.type == SDL_MOUSEBUTTONDOWN) {
 
 			selectedPiece = getSelectedPiece(rectList, event.button.x, event.button.y);
 
@@ -162,6 +160,15 @@ int main(int argc, char *argv[]){
 
 					}
 
+					if (p1->getIsTurn() && drawRet == 3) {
+
+						//makeComputerMove(renderer, gameBoard, p0, p1);
+						teamTurn = !teamTurn;
+						p0->setIsTurn(!p0->getIsTurn());
+						p1->setIsTurn(!p1->getIsTurn());
+
+					}
+
 					selectedPiece = -1;
 
 				}
@@ -171,6 +178,12 @@ int main(int argc, char *argv[]){
 		}
 
 		if (event.type == SDL_QUIT) {
+
+			close = 1;
+
+		}
+
+		if (declareWinner(p0, p1) > 0) {
 
 			close = 1;
 
@@ -327,15 +340,19 @@ int drawMenu() {
 	while (!close) {
 
 		SDL_Event event;
-		SDL_PollEvent(&event);
-		if (event.type == SDL_MOUSEBUTTONDOWN) {
+		if (SDL_PollEvent(&event) > 0 && event.type == SDL_MOUSEBUTTONDOWN) {
 
 			x = event.button.x;
 			y = event.button.y;
 
 			if (checkRectSelected(newRect, x, y) == 0) {
 
-				close = 1;
+				SDL_DestroyWindow(window);
+				SDL_DestroyRenderer(renderer);
+				free(newRect);
+				free(loadRect);
+				return 3;
+				//close = 1;
 
 			} else if (checkRectSelected(loadRect, x, y) == 0) {
 
@@ -663,6 +680,16 @@ int checkRectSelected(SDL_Rect* rect, int x, int y) {
 
 }
 
+/*
+
+This function removes the given piece from the game
+
+@param SDL_Renderer* renderer: renderer object to draw removed piece
+@param int** gameBoard: the game board tracking which postions are filled
+@param GamePiece* piece: the piece to be removed from the game
+@param SDL_Rect* rectList: list of all rectangles surrounding each piece
+
+*/
 void removePiece(SDL_Renderer* renderer, int** gameBoard, GamePiece* piece, SDL_Rect* rectList) {
 
 	int x = piece->getX(), y = piece->getY();
@@ -697,6 +724,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	int pieceX = piece->getX();
 	int pieceY = piece->getY();
 	int pieceTeam = piece->getTeam();
+	int* moves = (int*) calloc(8, sizeof(int));
 	int lessX = 0, lessY = 0, close = 0, jumpUL = 1, jumpUR = 1, jumpDL = 1, jumpDR = 1;
 	SDL_Rect upLeft, upRight, downLeft, downRight;
 	SDL_Event event;
@@ -711,115 +739,57 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 	SDL_SetRenderDrawColor(renderer, 51, 255, 51, 255);
 
-	if (piece->getTeam() == 0 || piece->getIsKing()) {
+	getLegalMoves(piece, moves, board, p0, p1);
 
-		if (pieceX - 1 >= 0) {
+	if (moves[0] == 1) {
 
-			if (pieceY - 1 >= 0) {
-
-				if (board[pieceX - 1][pieceY - 1] == 0) {
-
-					setRectCoords(renderer, pieceY * UNIT, pieceX * UNIT, &upLeft);
-
-				}
-
-			}
-
-			if (pieceY + 1 <= maxY) {
-
-				if (board[pieceX - 1][pieceY + 1] == 0) {
-
-					setRectCoords(renderer, (pieceY + 2) * UNIT, pieceX * UNIT, &upRight);
-
-				}
-
-			}
-
-		}
-
-		if (pieceX - 2 >= 0) {
-
-			if (pieceY - 2 >= 0) {
-
-				jumpedPieceUL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY - 1) : p0->getPieceByCoords(pieceX - 1, pieceY - 1);
-				if (jumpedPieceUL && board[pieceX - 1][pieceY - 1] == 1 && board[pieceX - 2][pieceY - 2] == 0) {
-
-					setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX - 1) * UNIT, &upLeft);
-					jumpUL = 2;
-
-				}
-
-			}
-
-			if (pieceY + 2 <= maxY) {
-
-				jumpedPieceUR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY + 1) : p0->getPieceByCoords(pieceX - 1, pieceY + 1);
-				if (jumpedPieceUR && board[pieceX - 1][pieceY + 1] == 1 && board[pieceX - 2][pieceY + 2] == 0) {
-
-					setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX - 1) * UNIT, &upRight);
-					jumpUR = 2;
-
-				}
-
-			}
-
-		}
+		setRectCoords(renderer, pieceY * UNIT, pieceX * UNIT, &upLeft);
 
 	}
 
-	if (piece->getTeam() == 1 || piece->getIsKing()) {
+	if (moves[1] == 1) {
 
-		if (pieceX + 1 <= maxX) {
+		setRectCoords(renderer, (pieceY + 2) * UNIT, pieceX * UNIT, &upRight);
 
-			if (pieceY - 1 >= 0) {
+	}
 
-				if (board[pieceX + 1][pieceY - 1] == 0) {
+	if (moves[2] == 1) {
 
-					setRectCoords(renderer, pieceY * UNIT, (pieceX + 2) * UNIT, &downLeft);
+		setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX - 1) * UNIT, &upLeft);
+		jumpUL = 2;
 
-				}
+	}
 
-			}
+	if (moves[3] == 1) {
 
-			if (pieceY + 1 <= maxY) {
+		setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX - 1) * UNIT, &upRight);
+		jumpUR = 2;
 
-				if (board[pieceX + 1][pieceY + 1] == 0) {
+	}
 
-					setRectCoords(renderer, (pieceY + 2) * UNIT, (pieceX + 2) * UNIT, &downRight);
+	if (moves[4] == 1) {
 
-				}
+		setRectCoords(renderer, pieceY * UNIT, (pieceX + 2) * UNIT, &downLeft);
 
-			}
+	}
 
-		}
+	if (moves[5] == 1) {
 
-		if (pieceX + 2 <= maxX) {
+		setRectCoords(renderer, (pieceY + 2) * UNIT, (pieceX + 2) * UNIT, &downRight);
 
-			if (pieceY - 2 >= 0) {
+	}
 
-				jumpedPieceDL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY - 1) : p0->getPieceByCoords(pieceX + 1, pieceY - 1);
-				if (jumpedPieceDL && board[pieceX + 1][pieceY - 1] == 1 && board[pieceX + 2][pieceY - 2] == 0) {
+	if (moves[6] == 1) {
 
-					setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX + 3) * UNIT, &downLeft);
-					jumpDL = 2;
+		setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX + 3) * UNIT, &downLeft);
+		jumpDL = 2;
 
-				}
+	}
 
-			}
+	if (moves[7] == 1) {
 
-			if (pieceY + 2 <= maxY) {
-
-				jumpedPieceDR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY + 1) : p0->getPieceByCoords(pieceX + 1, pieceY + 1);
-				if (jumpedPieceDR && board[pieceX + 1][pieceY + 1] == 1 && board[pieceX + 2][pieceY + 2] == 0) {
-
-					setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX + 3) * UNIT, &downRight);
-					jumpDR = 2;
-
-				}
-
-			}
-
-		}
+		setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX + 3) * UNIT, &downRight);
+		jumpDR = 2;
 
 	}
 	
@@ -829,8 +799,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 	while (!close) {
 
-		SDL_PollEvent(&event);
-		if (event.type == SDL_MOUSEBUTTONDOWN) {
+		if (SDL_PollEvent(&event) > 0 && event.type == SDL_MOUSEBUTTONDOWN) {
 
 			if (checkRectSelected(&upLeft, event.button.x, event.button.y) == 0) {
 
@@ -852,6 +821,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
 				updateScore(renderer, p0, p1);
+				free(moves);
 				return -1;
 
 			} else if (checkRectSelected(&upRight, event.button.x, event.button.y) == 0) {
@@ -874,6 +844,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
 				updateScore(renderer, p0, p1);
+				free(moves);
 				return -1;
 
 			} else if (checkRectSelected(&downLeft, event.button.x, event.button.y) == 0) {
@@ -886,8 +857,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 						p0->setScore(p0->getScore() + 1);
 
-					}
-					else {
+					} else {
 
 						p1->setScore(p1->getScore() + 1);
 
@@ -897,6 +867,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
 				updateScore(renderer, p0, p1);
+				free(moves);
 				return -1;
 
 			} else if (checkRectSelected(&downRight, event.button.x, event.button.y) == 0) {
@@ -909,8 +880,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 
 						p0->setScore(p0->getScore() + 1);
 
-					}
-					else {
+					} else {
 
 						p1->setScore(p1->getScore() + 1);
 
@@ -920,17 +890,21 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 				redrawPiece(renderer, piece, &rectList[index], pieceX, pieceY);
 				updateScore(renderer, p0, p1);
+				free(moves);
 				return -1;
 
 			} else {
 
 				clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
-				return getSelectedPiece(rectList, event.button.x, event.button.y);
+				int tempNum = getSelectedPiece(rectList, event.button.x, event.button.y);
+				free(moves);
+				return tempNum;
 
 			}
 
 		} else if (event.type == SDL_QUIT) {
 
+			free(moves);
 			return -2;
 
 		}
@@ -942,6 +916,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	clearGreenRects(renderer, &upLeft, &upRight, &downLeft, &downRight);
 	SDL_RenderPresent(renderer);
 
+	free(moves);
 	return -1;
 
 }
@@ -1007,5 +982,16 @@ void clearGreenRects(SDL_Renderer* renderer, SDL_Rect* rect1, SDL_Rect* rect2, S
 	}
 
 	SDL_RenderPresent(renderer);
+
+}
+
+/*
+
+This is a function stub to have the computer make a move
+
+*/
+void makeComputerMove(SDL_Renderer* renderer, int** board, Player* p0, Player* p1) {
+
+	
 
 }

@@ -4,7 +4,7 @@ Header file containing the class definition for the Player class
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 16, 2021
+Date: July 27, 2021
 
 */
 
@@ -172,7 +172,7 @@ class Player {
 
 			for (int i = 0; i < 12; i++) {
 
-				if (pieces[i] && pieces[i]->getX() == x && pieces[i]->getY() == y) {
+				if (pieces[i] && pieces[i]->getX() == x && pieces[i]->getY() == y && pieces[i]->getInPlay()) {
 
 					return pieces[i];
 

@@ -4,7 +4,7 @@ Header file containing all fucntion prototypes and define statements as well as 
 
 Name: Noah Hinderle
 Email: noah.hinderle@gmail.com
-Date: July 16, 2021
+Date: July 27, 2021
 
 */
 
@@ -56,7 +56,10 @@ int handlePieceSelected(SDL_Renderer*, int, GamePiece*, int**, SDL_Rect*, Player
 void setRectCoords(SDL_Renderer*, int, int, SDL_Rect*);
 void saveGame(Player*, Player*);
 int loadGame(Player*, Player*);
-void removePiece(SDL_Renderer*, int**, GamePiece*);
+void removePiece(SDL_Renderer*, int**, GamePiece*, SDL_Rect*);
 void updateScore(SDL_Renderer*, Player*, Player*);
+int declareWinner(Player* p0, Player* p1);
+void makeComputerMove(SDL_Renderer*, int**, Player*, Player*);
+void getLegalMoves(GamePiece*, int*, int**, Player*, Player*);
 void clearGreenRects(SDL_Renderer*, SDL_Rect*, SDL_Rect*, SDL_Rect*, SDL_Rect*);
 int createModal(const char*, const char*, const char*, const char*);
