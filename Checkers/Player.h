@@ -17,6 +17,7 @@ class Player {
 		int score;
 		int playerNum;
 		bool isTurn;
+		bool canMove;
 
 	public:
 		Player() {
@@ -25,6 +26,7 @@ class Player {
 			setPlayerNum(1);
 			setPieces(1);
 			setIsTurn(false);
+			setCanMove(true);
 
 		}
 
@@ -34,6 +36,7 @@ class Player {
 			setPlayerNum(playerNum);
 			setPieces(playerNum);
 			setIsTurn(playerNum);
+			setCanMove(true);
 
 		}
 
@@ -184,6 +187,18 @@ class Player {
 
 		}
 
+		void setCanMove(bool canMove) {
+
+			this->canMove = canMove;
+
+		}
+
+		bool getCanMove() {
+
+			return canMove;
+
+		}
+
 		template<class Archive>
 		void serialize(Archive& arc, const unsigned int version) {
 
@@ -191,6 +206,7 @@ class Player {
 			arc& BOOST_SERIALIZATION_NVP(playerNum);
 			arc& BOOST_SERIALIZATION_NVP(isTurn);
 			arc& BOOST_SERIALIZATION_NVP(pieces);
+			arc& BOOST_SERIALIZATION_NVP(canMove);
 
 		}
 

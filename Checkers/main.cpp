@@ -293,6 +293,7 @@ int drawMenu() {
 	int close = 0, x, y;
 	SDL_Rect* newRect = (SDL_Rect*)malloc(sizeof(SDL_Rect));
 	SDL_Rect* loadRect = (SDL_Rect*)malloc(sizeof(SDL_Rect));
+	SDL_Rect* newSingleRect = (SDL_Rect*)malloc(sizeof(SDL_Rect));
 
 	SDL_Color blackText = { 0, 0, 0 };
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
@@ -325,8 +326,9 @@ int drawMenu() {
 	SDL_RenderClear(renderer);
 
 	addText(renderer, font, "WELCOME", blackText, 0, 0, newRect);
-	addText(renderer, font2, "New Game", blackText, 0, 100, newRect);
-	addText(renderer, font2, "Load Game", blackText, 0, 200, loadRect);
+	addText(renderer, font2, "New 2-Player Game", blackText, 0, 100, newRect);
+	addText(renderer, font2, "New 1-Player Game", blackText, 0, 200, newSingleRect);
+	addText(renderer, font2, "Load Game", blackText, 0, 300, loadRect);
 	SDL_RenderPresent(renderer);
 
 	if (!newRect || !loadRect) {
@@ -347,20 +349,25 @@ int drawMenu() {
 
 			if (checkRectSelected(newRect, x, y) == 0) {
 
-				SDL_DestroyWindow(window);
-				SDL_DestroyRenderer(renderer);
-				free(newRect);
-				free(loadRect);
-				return 3;
-				//close = 1;
+				close = 1;
 
 			} else if (checkRectSelected(loadRect, x, y) == 0) {
 
 				SDL_DestroyWindow(window);
 				SDL_DestroyRenderer(renderer);
 				free(newRect);
+				free(newSingleRect);
 				free(loadRect);
 				return 2;
+
+			} else if (checkRectSelected(newSingleRect, x, y) == 0) {
+
+				SDL_DestroyWindow(window);
+				SDL_DestroyRenderer(renderer);
+				free(newRect);
+				free(newSingleRect);
+				free(loadRect);
+				return 3;
 
 			}
 
@@ -379,6 +386,7 @@ int drawMenu() {
 	SDL_DestroyWindow(window);
 	SDL_DestroyRenderer(renderer);
 	free(newRect);
+	free(newSingleRect);
 	free(loadRect);
 
 	return 0;
@@ -756,6 +764,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	if (moves[2] == 1) {
 
 		setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX - 1) * UNIT, &upLeft);
+		jumpedPieceUL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY - 1) : p0->getPieceByCoords(pieceX - 1, pieceY - 1);
 		jumpUL = 2;
 
 	}
@@ -763,6 +772,8 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	if (moves[3] == 1) {
 
 		setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX - 1) * UNIT, &upRight);
+		jumpedPieceUR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX - 1, pieceY + 1) : p0->getPieceByCoords(pieceX - 1, pieceY + 1);
+
 		jumpUR = 2;
 
 	}
@@ -782,6 +793,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	if (moves[6] == 1) {
 
 		setRectCoords(renderer, (pieceY - 1) * UNIT, (pieceX + 3) * UNIT, &downLeft);
+		jumpedPieceDL = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY - 1) : p0->getPieceByCoords(pieceX + 1, pieceY - 1);
 		jumpDL = 2;
 
 	}
@@ -789,6 +801,7 @@ int handlePieceSelected(SDL_Renderer* renderer, int index, GamePiece* piece, int
 	if (moves[7] == 1) {
 
 		setRectCoords(renderer, (pieceY + 3) * UNIT, (pieceX + 3) * UNIT, &downRight);
+		jumpedPieceDR = pieceTeam == 0 ? p1->getPieceByCoords(pieceX + 1, pieceY + 1) : p0->getPieceByCoords(pieceX + 1, pieceY + 1);
 		jumpDR = 2;
 
 	}
